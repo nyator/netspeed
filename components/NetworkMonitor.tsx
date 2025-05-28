@@ -26,6 +26,31 @@ const NetworkMonitor = () => {
     country?: string;
     org?: string;
   } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const refreshAllData = async () => {
+    setIsRefreshing(true);
+    try {
+      if (connected) {
+        await measurePing();
+        await measureDownloadSpeed();
+      }
+      const ipRes = await fetch("https://api.ipify.org?format=json");
+      const ipData = await ipRes.json();
+      setIpAddress(ipData.ip);
+
+      const locRes = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
+      const locData = await locRes.json();
+      setLocation({
+        city: locData.city,
+        region: locData.region,
+        country: locData.country_name,
+        org: locData.org,
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const measurePing = async () => {
     try {
@@ -74,7 +99,7 @@ const NetworkMonitor = () => {
         measurePing();
         measureDownloadSpeed();
       }
-    }, 2000);
+    }, 10000); //
 
     return () => {
       unsubscribe();
@@ -97,6 +122,7 @@ const NetworkMonitor = () => {
           country: locData.country_name,
           org: locData.org,
         });
+        console.log(locData);
       } catch (e) {
         setIpAddress(null);
         setLocation(null);
@@ -195,7 +221,7 @@ const NetworkMonitor = () => {
           <Text className="text-[#57C785]">powered by </Text>nehtek
         </Text>
         <Text className="text-[4rem] text-white font-sBold relative">
-          N/A
+        {downloadSpeed !== null ? downloadSpeed : "N/A"}
           <Text className="absolute top-0 text-lg">Mb/s</Text>
         </Text>
         <View className="mt-4 mb-2">
@@ -218,11 +244,16 @@ const NetworkMonitor = () => {
       <View className="flex w-52 h-24 bg-[#0086FC] border-[5px] border-[#fff] absolute bottom-10 px-6 py-6 rounded-full shadow-3xl items-center justify-center">
         <Pressable
           className="opacity-80"
-          disabled={true}
+          onPress={refreshAllData}
+          disabled={isRefreshing}
         >
-          <Text className="text-white text-center text-2xl font-sBold">
-            Speed Test
-          </Text>
+          {isRefreshing ? (
+            <ActivityIndicator size="large" color="white" />
+          ) : (
+            <Text className="text-white text-center text-2xl font-sBold">
+              Speed Test
+            </Text>
+          )}
         </Pressable>
       </View>
     </View>

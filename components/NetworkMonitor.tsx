@@ -10,6 +10,7 @@ import NetInfo from "@react-native-community/netinfo";
 
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 const NetworkMonitor = () => {
@@ -124,7 +125,7 @@ const NetworkMonitor = () => {
           {/* Ping Card */}
           <View className="rounded-3xl shadow-lg w-28 h-28 border-[1.2px] bg-[#FA633F]/5 border-[#FA633F] flex items-center justify-center">
             <View className="rounded-full bg-[#FA633F]/10 border border-[#FA633F]/20 p-2 ">
-              <Ionicons name="speedometer" size={24} color="#FA633F" />
+              <MaterialIcons name="network-ping" size={24} color="#FA633F" />
             </View>
             <Text className="text-center mt-1 font-sMedium text-[#FA633F]">
               Ping

@@ -21,34 +21,61 @@ const NetworkMonitor = () => {
   const [ping, setPing] = useState<number | null>(null);
   const [downloadSpeed, setDownloadSpeed] = useState<number | null>(null);
   const [location, setLocation] = useState<{
+    emoji?: string;
     city?: string;
     region?: string;
     country?: string;
     org?: string;
   } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLocating, setIsLocating] = useState(false); // Add this state
+
+  // Helper to fetch location from ipgeolocation.io (requires a free API key)
+  const fetchLocationFromIpGeolocation = async (ip: string) => {
+    const apiKey = "4a9d730c054b41ca9b52e1020a107aa5"; // Get a free API key from https://ipgeolocation.io/
+    const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}&ip=${ip}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to fetch location from ipgeolocation.io");
+    const data = await res.json();
+    return {
+      emoji: data.country_emoji,
+      city: data.city,
+      region: data.state_prov,
+      country: data.country_name,
+      org: data.organization,
+    };
+  };
 
   const refreshAllData = async () => {
     setIsRefreshing(true);
+    setIsLocating(true);
     try {
       if (connected) {
         await measurePing();
         await measureDownloadSpeed();
       }
+      // Fetch IP
       const ipRes = await fetch("https://api.ipify.org?format=json");
+      if (!ipRes.ok) throw new Error("Failed to fetch IP");
       const ipData = await ipRes.json();
+      if (!ipData.ip) throw new Error("No IP in response");
       setIpAddress(ipData.ip);
 
-      const locRes = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
-      const locData = await locRes.json();
+      // Fetch Location from ipgeolocation.io
+      const locData = await fetchLocationFromIpGeolocation(ipData.ip);
       setLocation({
+        emoji: locData.emoji,
         city: locData.city,
         region: locData.region,
-        country: locData.country_name,
+        country: locData.country,
         org: locData.org,
       });
+    } catch (e) {
+      console.error("refreshAllData error:", e);
+      // Do NOT clear IP/location here, just keep the previous values
     } finally {
       setIsRefreshing(false);
+      setIsLocating(false);
     }
   };
 
@@ -109,28 +136,34 @@ const NetworkMonitor = () => {
 
   useEffect(() => {
     const fetchIpAndLocation = async () => {
+      setIsLocating(true);
       try {
+        // Fetch IP
         const ipRes = await fetch("https://api.ipify.org?format=json");
+        if (!ipRes.ok) throw new Error("Failed to fetch IP");
         const ipData = await ipRes.json();
+        if (!ipData.ip) throw new Error("No IP in response");
         setIpAddress(ipData.ip);
 
-        const locRes = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
-        const locData = await locRes.json();
+        // Fetch Location from ipgeolocation.io
+        const locData = await fetchLocationFromIpGeolocation(ipData.ip);
         setLocation({
+          emoji: locData.emoji,
           city: locData.city,
           region: locData.region,
-          country: locData.country_name,
+          country: locData.country,
           org: locData.org,
         });
-        console.log(locData);
       } catch (e) {
-        setIpAddress(null);
-        setLocation(null);
+        console.error("fetchIpAndLocation error:", e);
+        // Do NOT clear IP/location here, just keep the previous values
+      } finally {
+        setIsLocating(false);
       }
     };
     fetchIpAndLocation();
-  }, []);
-
+  }, [connected, networkType]);
+  
   const statusColor = connected ? "text-green-600" : "text-red-600";
 
   return (
@@ -226,12 +259,16 @@ const NetworkMonitor = () => {
         </Text>
         <View className="mt-4 mb-2">
           <Text className="text-center text-xs font-sMedium text-gray-500">
-            IP: {ipAddress ?? "Loading..."}
+            IP: {isLocating && !ipAddress
+              ? "Fetching..."
+              : ipAddress ?? "Unavailable"}
           </Text>
           <Text className="text-center text-xs font-sMedium text-gray-500">
-            {location
-              ? `${location.city ?? ""}${location.city ? ", " : ""}${location.region ?? ""}${location.region ? ", " : ""}${location.country ?? ""}`
-              : "Locating..."}
+            {isLocating && !location
+              ? "Locating..."
+              : location
+                ? `${location.city ?? ""}${location.city ? ", " : ""}${location.region ?? ""}${location.region ? ", " : ""}${location.country ?? ""}${location.emoji ? ", " : ""}${location.emoji ?? ""}`
+                : "Unavailable"}
           </Text>
           {location?.org && (
             <Text className="text-center text-xs font-sMedium text-gray-400">
@@ -243,7 +280,7 @@ const NetworkMonitor = () => {
 
       <View className="flex w-52 h-24 bg-[#0086FC] border-[5px] border-[#fff] absolute bottom-10 px-6 py-6 rounded-full shadow-3xl items-center justify-center">
         <Pressable
-          className="opacity-80"
+          // className="opacity-"
           onPress={refreshAllData}
           disabled={isRefreshing}
         >

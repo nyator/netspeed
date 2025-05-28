@@ -19,6 +19,7 @@ const NetworkMonitor = () => {
   const [networkStrength, setNetworkStrength] = useState(0);
   const [ipAddress, setIpAddress] = useState<string | null>(null);
   const [ping, setPing] = useState<number | null>(null);
+  const [downloadSpeed, setDownloadSpeed] = useState<number | null>(null);
   const [location, setLocation] = useState<{
     city?: string;
     region?: string;
@@ -42,6 +43,20 @@ const NetworkMonitor = () => {
     }
   };
 
+  const measureDownloadSpeed = async () => {
+    try {
+      const startTime = Date.now();
+      const response = await fetch('https://www.google.com/images/phd/px.gif');
+      const endTime = Date.now();
+      const duration = (endTime - startTime) / 1000; // Convert to seconds
+      const fileSize = 43; // Size of the test file in bytes
+      const speedMbps = (fileSize * 8) / (duration * 1000000); // Convert to Mbps
+      setDownloadSpeed(Number(speedMbps.toFixed(2)));
+    } catch (error) {
+      setDownloadSpeed(null);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setNetworkType(state.type);
@@ -49,21 +64,23 @@ const NetworkMonitor = () => {
       setNetworkStrength(state.isInternetReachable ? 1 : 0);
       if (state.isConnected) {
         measurePing();
+        measureDownloadSpeed();
       }
     });
 
-    // Set up interval for ping updates
-    const pingInterval = setInterval(() => {
+    // Set up interval for ping and download speed updates
+    const speedInterval = setInterval(() => {
       if (connected) {
         measurePing();
+        measureDownloadSpeed();
       }
-    }, 500);
+    }, 2000);
 
     return () => {
       unsubscribe();
-      clearInterval(pingInterval);
+      clearInterval(speedInterval);
     };
-  }, [connected]); // Add connected as dependency to ensure interval updates when connection status changes
+  }, [connected]);
 
   useEffect(() => {
     const fetchIpAndLocation = async () => {
@@ -148,9 +165,8 @@ const NetworkMonitor = () => {
               Download
             </Text>
             <Text className="text-center mt-1 font-sBold">
-              {" "}
-              N/A
-              <Text className="font-sRegular"> (Mb/s)</Text>
+              {downloadSpeed !== null ? downloadSpeed : "N/A"}
+              <Text className="font-sRegular"> Mb/s</Text>
             </Text>
           </View>
           {/* Upload Card */}

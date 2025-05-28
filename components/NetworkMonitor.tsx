@@ -10,7 +10,7 @@ import NetInfo from "@react-native-community/netinfo";
 
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 const NetworkMonitor = () => {
@@ -20,6 +20,7 @@ const NetworkMonitor = () => {
   const [ipAddress, setIpAddress] = useState<string | null>(null);
   const [ping, setPing] = useState<number | null>(null);
   const [downloadSpeed, setDownloadSpeed] = useState<number | null>(null);
+  const [uploadSpeed, setUploadSpeed] = useState<number | null>(null); // Add upload speed state
   const [location, setLocation] = useState<{
     emoji?: string;
     city?: string;
@@ -30,29 +31,23 @@ const NetworkMonitor = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLocating, setIsLocating] = useState(false); // Add this state
 
-  // Helper to fetch location from ipgeolocation.io (requires a free API key)
-  const fetchLocationFromIpGeolocation = async (ip: string) => {
-    const apiKey = "4a9d730c054b41ca9b52e1020a107aa5"; // Get a free API key from https://ipgeolocation.io/
-    const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}&ip=${ip}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Failed to fetch location from ipgeolocation.io");
-    const data = await res.json();
-    return {
-      emoji: data.country_emoji,
-      city: data.city,
-      region: data.state_prov,
-      country: data.country_name,
-      org: data.organization,
-    };
-  };
 
   const refreshAllData = async () => {
     setIsRefreshing(true);
     setIsLocating(true);
+
+    // Reset values before measuring
+    setPing(0);
+    setDownloadSpeed(0);
+    setUploadSpeed(0);
+    setIpAddress(null);
+    setLocation(null);
+
     try {
       if (connected) {
         await measurePing();
         await measureDownloadSpeed();
+        await measureUploadSpeed();
       }
       // Fetch IP
       const ipRes = await fetch("https://api.ipify.org?format=json");
@@ -82,10 +77,10 @@ const NetworkMonitor = () => {
   const measurePing = async () => {
     try {
       const startTime = Date.now();
-      const response = await fetch('https://www.google.com', { 
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache'
+      const response = await fetch("https://www.google.com", {
+        method: "HEAD",
+        mode: "no-cors",
+        cache: "no-cache",
       });
       const endTime = Date.now();
       const pingTime = endTime - startTime;
@@ -98,7 +93,7 @@ const NetworkMonitor = () => {
   const measureDownloadSpeed = async () => {
     try {
       const startTime = Date.now();
-      const response = await fetch('https://www.google.com/images/phd/px.gif');
+      const response = await fetch("https://www.google.com/images/phd/px.gif");
       const endTime = Date.now();
       const duration = (endTime - startTime) / 1000; // Convert to seconds
       const fileSize = 43; // Size of the test file in bytes
@@ -106,6 +101,28 @@ const NetworkMonitor = () => {
       setDownloadSpeed(Number(speedMbps.toFixed(2)));
     } catch (error) {
       setDownloadSpeed(null);
+    }
+  };
+
+  const measureUploadSpeed = async () => {
+    try {
+      const data = new Uint8Array(200 * 1024); // 200KB dummy data
+      const startTime = Date.now();
+      const response = await fetch("https://httpbin.org/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream",
+        },
+        body: data,
+      });
+      const endTime = Date.now();
+      if (!response.ok) throw new Error("Upload failed");
+      const duration = (endTime - startTime) / 1000; // seconds
+      const fileSize = data.length; // bytes
+      const speedMbps = (fileSize * 8) / (duration * 1000000); // Mbps
+      setUploadSpeed(Number(speedMbps.toFixed(2)));
+    } catch (error) {
+      setUploadSpeed(null);
     }
   };
 
@@ -117,22 +134,41 @@ const NetworkMonitor = () => {
       if (state.isConnected) {
         measurePing();
         measureDownloadSpeed();
+        measureUploadSpeed(); // Add upload speed test
       }
     });
 
-    // Set up interval for ping and download speed updates
+    // Set up interval for ping and download/upload speed updates
     const speedInterval = setInterval(() => {
       if (connected) {
         measurePing();
         measureDownloadSpeed();
+        measureUploadSpeed(); // Add upload speed test
       }
-    }, 10000); //
+    }, 10000);
 
     return () => {
       unsubscribe();
       clearInterval(speedInterval);
     };
   }, [connected]);
+
+  // Helper to fetch location from ipgeolocation.io (requires a free API key)
+  const fetchLocationFromIpGeolocation = async (ip: string) => {
+    const apiKey = "4a9d730c054b41ca9b52e1020a107aa5"; // Get a free API key from https://ipgeolocation.io/
+    const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}&ip=${ip}`;
+    const res = await fetch(url);
+    if (!res.ok)
+      throw new Error("Failed to fetch location from ipgeolocation.io");
+    const data = await res.json();
+    return {
+      emoji: data.country_emoji,
+      city: data.city,
+      region: data.state_prov,
+      country: data.country_name,
+      org: data.organization,
+    };
+  };
 
   useEffect(() => {
     const fetchIpAndLocation = async () => {
@@ -163,7 +199,7 @@ const NetworkMonitor = () => {
     };
     fetchIpAndLocation();
   }, [connected, networkType]);
-  
+
   const statusColor = connected ? "text-green-600" : "text-red-600";
 
   return (
@@ -178,9 +214,7 @@ const NetworkMonitor = () => {
       <View className="flex w-full max-w-lg bg-white border-[2px] border-[#a3a3a3] px-6 py-6 rounded-b-[3rem] shadow-lg pt-20 -mt-1">
         <View className="flex flex-row items-center justify-between px-3">
           <Text className="text-2xl text-center font-sBlack">netSpeed</Text>
-          <Pressable
-            className="text-lg text-center font-sMedium"
-          >
+          <Pressable className="text-lg text-center font-sMedium">
             <AntDesign name="questioncircleo" size={24} color="black" />
           </Pressable>
         </View>
@@ -194,9 +228,8 @@ const NetworkMonitor = () => {
           <Text className={`text-lg font-sMedium ${statusColor}`}>
             {connected ? "Connected" : "Disconnected"}
           </Text>
-          
         </View>
-        
+
         <View className="flex flex-row items-center justify-between mt-6">
           {/* Ping Card */}
           <View className="rounded-3xl shadow-lg w-28 h-28 border-[1.2px] bg-[#FA633F]/5 border-[#FA633F] flex items-center justify-center">
@@ -241,9 +274,8 @@ const NetworkMonitor = () => {
               Upload
             </Text>
             <Text className="text-center mt-1 font-sBold">
-              {" "}
-              N/A
-              <Text className="font-sRegular"> (Mb/s)</Text>{" "}
+              {uploadSpeed !== null ? uploadSpeed : "N/A"}
+              <Text className="font-sRegular"> (Mb/s)</Text>
             </Text>
           </View>
         </View>
@@ -254,12 +286,13 @@ const NetworkMonitor = () => {
           <Text className="text-[#57C785]">powered by </Text>nehtek
         </Text>
         <Text className="text-[4rem] text-white font-sBold relative">
-        {downloadSpeed !== null ? downloadSpeed : "N/A"}
+          {downloadSpeed !== null ? downloadSpeed : "N/A"}
           <Text className="absolute top-0 text-lg">Mb/s</Text>
         </Text>
         <View className="mt-4 mb-2">
           <Text className="text-center text-xs font-sMedium text-gray-500">
-            IP: {isLocating && !ipAddress
+            IP:{" "}
+            {isLocating && !ipAddress
               ? "Fetching..."
               : ipAddress ?? "Unavailable"}
           </Text>
@@ -267,8 +300,12 @@ const NetworkMonitor = () => {
             {isLocating && !location
               ? "Locating..."
               : location
-                ? `${location.city ?? ""}${location.city ? ", " : ""}${location.region ?? ""}${location.region ? ", " : ""}${location.country ?? ""}${location.emoji ? ", " : ""}${location.emoji ?? ""}`
-                : "Unavailable"}
+              ? `${location.city ?? ""}${location.city ? ", " : ""}${
+                  location.region ?? ""
+                }${location.region ? ", " : ""}${location.country ?? ""}${
+                  location.emoji ? ", " : ""
+                }${location.emoji ?? ""}`
+              : "Unavailable"}
           </Text>
           {location?.org && (
             <Text className="text-center text-xs font-sMedium text-gray-400">

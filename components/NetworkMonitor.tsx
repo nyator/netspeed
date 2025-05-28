@@ -5,6 +5,8 @@ import {
   ActivityIndicator,
   Pressable,
   StatusBar,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 
@@ -30,7 +32,7 @@ const NetworkMonitor = () => {
   } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLocating, setIsLocating] = useState(false); // Add this state
-
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   const refreshAllData = async () => {
     setIsRefreshing(true);
@@ -214,7 +216,10 @@ const NetworkMonitor = () => {
       <View className="flex w-full max-w-lg bg-white border-[2px] border-[#a3a3a3] px-6 py-6 rounded-b-[3rem] shadow-lg pt-20 -mt-1">
         <View className="flex flex-row items-center justify-between px-3">
           <Text className="text-2xl text-center font-sBlack">netSpeed</Text>
-          <Pressable className="text-lg text-center font-sMedium">
+          <Pressable
+            className="text-lg text-center font-sMedium"
+            onPress={() => setIsDrawerVisible(true)}
+          >
             <AntDesign name="questioncircleo" size={24} color="black" />
           </Pressable>
         </View>
@@ -285,7 +290,7 @@ const NetworkMonitor = () => {
         <Text className="text-m text-white font-sBold mt-4 top-0 absolute">
           <Text className="text-[#57C785]">powered by </Text>nehtek
         </Text>
-        <Text className="text-[4rem] text-white font-sBold relative">
+        <Text className="text-[4rem] -mt-20 text-white font-sBold relative">
           {downloadSpeed !== null ? downloadSpeed : "N/A"}
           <Text className="absolute top-0 text-lg">Mb/s</Text>
         </Text>
@@ -317,7 +322,6 @@ const NetworkMonitor = () => {
 
       <View className="flex w-52 h-24 bg-[#0086FC] border-[5px] border-[#fff] absolute bottom-10 px-6 py-6 rounded-full shadow-3xl items-center justify-center">
         <Pressable
-          // className="opacity-"
           onPress={refreshAllData}
           disabled={isRefreshing}
         >
@@ -330,6 +334,33 @@ const NetworkMonitor = () => {
           )}
         </Pressable>
       </View>
+
+      {/* Bottom Drawer Modal */}
+      <Modal
+        visible={isDrawerVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setIsDrawerVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setIsDrawerVisible(false)}>
+          <View className="flex-1 bg-black/30" />
+        </TouchableWithoutFeedback>
+        <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl px-6 pt-4 pb-8 min-h-[220px] items-center shadow-lg">
+          <View className="w-10 h-1.5 rounded bg-gray-300 mb-3" />
+          <Text className="text-xl font-sBold mb-2 text-zinc-800">About netSpeed</Text>
+          <Text className="text-base font-sRegular text-zinc-700 text-center mb-5">
+            This app measures your network speed, ping, and location. Tap "Speed
+            Test" to refresh the results. Your IP and location are fetched from
+            public APIs.
+          </Text>
+          <Pressable
+            className="bg-[#0086FC] rounded-xl py-2 px-8"
+            onPress={() => setIsDrawerVisible(false)}
+          >
+            <Text className="text-white font-sBold text-lg">Close</Text>
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 };

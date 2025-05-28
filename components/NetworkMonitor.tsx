@@ -17,6 +17,7 @@ const NetworkMonitor = () => {
   const [connected, setConnected] = useState(false);
   const [networkStrength, setNetworkStrength] = useState(0);
   const [ipAddress, setIpAddress] = useState<string | null>(null);
+  const [ping, setPing] = useState<number | null>(null);
   const [location, setLocation] = useState<{
     city?: string;
     region?: string;
@@ -24,17 +25,44 @@ const NetworkMonitor = () => {
     org?: string;
   } | null>(null);
 
+  const measurePing = async () => {
+    try {
+      const startTime = Date.now();
+      const response = await fetch('https://www.google.com', { 
+        method: 'HEAD',
+        mode: 'no-cors',
+        cache: 'no-cache'
+      });
+      const endTime = Date.now();
+      const pingTime = endTime - startTime;
+      setPing(pingTime);
+    } catch (error) {
+      setPing(null);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setNetworkType(state.type);
       setConnected(state.isConnected ?? false);
       setNetworkStrength(state.isInternetReachable ? 1 : 0);
+      if (state.isConnected) {
+        measurePing();
+      }
     });
+
+    // Set up interval for ping updates
+    const pingInterval = setInterval(() => {
+      if (connected) {
+        measurePing();
+      }
+    }, 500);
 
     return () => {
       unsubscribe();
+      clearInterval(pingInterval);
     };
-  }, []);
+  }, [connected]); // Add connected as dependency to ensure interval updates when connection status changes
 
   useEffect(() => {
     const fetchIpAndLocation = async () => {
@@ -89,6 +117,7 @@ const NetworkMonitor = () => {
           <Text className={`text-lg font-sMedium ${statusColor}`}>
             {connected ? "Connected" : "Disconnected"}
           </Text>
+          
         </View>
         
         <View className="flex flex-row items-center justify-between mt-6">
@@ -101,8 +130,7 @@ const NetworkMonitor = () => {
               Ping
             </Text>
             <Text className="text-center mt-1 font-sBold">
-              {" "}
-              N/A
+              {ping !== null ? ping : "N/A"}
               <Text className="font-sRegular"> ms</Text>
             </Text>
           </View>

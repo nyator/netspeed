@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,20 +6,16 @@ import {
   Pressable,
   StatusBar,
 } from "react-native";
-import NetInfo, {  } from "@react-native-community/netinfo";
+import NetInfo from "@react-native-community/netinfo";
 
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
-const SPEED_TEST_URL = "https://speed.hetzner.de/100MB.bin"; // public test file
-
 const NetworkMonitor = () => {
   const [networkType, setNetworkType] = useState("");
   const [connected, setConnected] = useState(false);
   const [networkStrength, setNetworkStrength] = useState(0);
-  const [speedMbps, setSpeedMbps] = useState<number | null>(null);
-  const [speedLoading, setSpeedLoading] = useState(false);
   const [ipAddress, setIpAddress] = useState<string | null>(null);
   const [location, setLocation] = useState<{
     city?: string;
@@ -28,7 +24,6 @@ const NetworkMonitor = () => {
     org?: string;
   } | null>(null);
 
-  
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setNetworkType(state.type);
@@ -41,49 +36,13 @@ const NetworkMonitor = () => {
     };
   }, []);
 
-  
-
-  
-  const testSpeed = useCallback(async () => {
-    setSpeedLoading(true);
-    setSpeedMbps(null);
-    try {
-      const start = Date.now();
-      // Fetch a small chunk (1MB) using Range header
-      const response = await fetch(SPEED_TEST_URL, {
-        headers: { Range: `bytes=0-${1024 * 1024 - 1}` },
-      });
-      const blob = await response.blob();
-      const end = Date.now();
-      const durationSec = (end - start) / 1000;
-      // Calculate speed in Mbps (megabits per second)
-      const megabits = (blob.size * 8) / 1_000_000;
-      const speed = durationSec > 0 ? megabits / durationSec : 0;
-      setSpeedMbps(Number(speed.toFixed(2)));
-    } catch (e) {
-      setSpeedMbps(null);
-    }
-    setSpeedLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (connected && networkStrength) {
-      testSpeed();
-    } else {
-      setSpeedMbps(null);
-    }
-  }, [connected, networkStrength]);
-
-  // Fetch public IP and location
   useEffect(() => {
     const fetchIpAndLocation = async () => {
       try {
-        // Get public IP
         const ipRes = await fetch("https://api.ipify.org?format=json");
         const ipData = await ipRes.json();
         setIpAddress(ipData.ip);
 
-        // Get location info
         const locRes = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
         const locData = await locRes.json();
         setLocation({
@@ -116,7 +75,6 @@ const NetworkMonitor = () => {
           <Text className="text-2xl text-center font-sBlack">netSpeed</Text>
           <Pressable
             className="text-lg text-center font-sMedium"
-            // onClick={() => {}}
           >
             <AntDesign name="questioncircleo" size={24} color="black" />
           </Pressable>
@@ -144,8 +102,8 @@ const NetworkMonitor = () => {
             </Text>
             <Text className="text-center mt-1 font-sBold">
               {" "}
-              {"N/A"}
-              <Text className="font-sRegular"> (ms)</Text>
+              N/A
+              <Text className="font-sRegular"> ms</Text>
             </Text>
           </View>
           {/* Download Card */}
@@ -162,7 +120,7 @@ const NetworkMonitor = () => {
             </Text>
             <Text className="text-center mt-1 font-sBold">
               {" "}
-              {speedLoading ? "..." : speedMbps !== null ? speedMbps : "N/A"}{" "}
+              N/A
               <Text className="font-sRegular"> (Mb/s)</Text>
             </Text>
           </View>
@@ -180,7 +138,7 @@ const NetworkMonitor = () => {
             </Text>
             <Text className="text-center mt-1 font-sBold">
               {" "}
-              {"N/A"}
+              N/A
               <Text className="font-sRegular"> (Mb/s)</Text>{" "}
             </Text>
           </View>
@@ -192,10 +150,9 @@ const NetworkMonitor = () => {
           <Text className="text-[#57C785]">powered by </Text>nehtek
         </Text>
         <Text className="text-[4rem] text-white font-sBold relative">
-          {speedLoading ? "..." : speedMbps !== null ? speedMbps : "N/A"}
+          N/A
           <Text className="absolute top-0 text-lg">Mb/s</Text>
         </Text>
-        {/* Add IP and Location display */}
         <View className="mt-4 mb-2">
           <Text className="text-center text-xs font-sMedium text-gray-500">
             IP: {ipAddress ?? "Loading..."}
@@ -215,20 +172,11 @@ const NetworkMonitor = () => {
 
       <View className="flex w-52 h-24 bg-[#0086FC] border-[5px] border-[#fff] absolute bottom-10 px-6 py-6 rounded-full shadow-3xl items-center justify-center">
         <Pressable
-          className={`${
-            speedLoading || !connected || !networkStrength
-              ? "opacity-80"
-              : "opacity-100"
-          }`}
-          onPress={testSpeed}
-          disabled={speedLoading || !connected || !networkStrength}
+          className="opacity-80"
+          disabled={true}
         >
           <Text className="text-white text-center text-2xl font-sBold">
-            {speedLoading ? (
-              <ActivityIndicator size="large" color="#fff" />
-            ) : (
-              "Speed Test"
-            )}
+            Speed Test
           </Text>
         </Pressable>
       </View>

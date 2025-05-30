@@ -98,7 +98,8 @@ const NetworkMonitor = () => {
       const response = await fetch("https://www.google.com/images/phd/px.gif");
       const endTime = Date.now();
       const duration = (endTime - startTime) / 1000; // Convert to seconds
-      const fileSize = 43; // Size of the test file in bytes
+      // Size of the test file in bits
+      const fileSize = 43 * 256; // 43KB (43 * 1024 bytes)
       const speedMbps = (fileSize * 8) / (duration * 1000000); // Convert to Mbps
       setDownloadSpeed(Number(speedMbps.toFixed(2)));
     } catch (error) {
@@ -321,10 +322,7 @@ const NetworkMonitor = () => {
       </View>
 
       <View className="flex w-52 h-24 bg-[#0086FC] border-[5px] border-[#fff] absolute bottom-10 px-6 py-6 rounded-full shadow-3xl items-center justify-center">
-        <Pressable
-          onPress={refreshAllData}
-          disabled={isRefreshing}
-        >
+        <Pressable onPress={refreshAllData} disabled={isRefreshing}>
           {isRefreshing ? (
             <ActivityIndicator size="large" color="white" />
           ) : (
@@ -338,7 +336,7 @@ const NetworkMonitor = () => {
       {/* Bottom Drawer Modal */}
       <Modal
         visible={isDrawerVisible}
-        animationType="fade"
+        animationType="slide"
         transparent
         onRequestClose={() => setIsDrawerVisible(false)}
       >
@@ -347,7 +345,9 @@ const NetworkMonitor = () => {
         </TouchableWithoutFeedback>
         <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl px-6 pt-4 pb-8 min-h-[220px] items-center shadow-lg">
           <View className="w-10 h-1.5 rounded bg-gray-300 mb-3" />
-          <Text className="text-xl font-sBold mb-2 text-zinc-800">About netSpeed</Text>
+          <Text className="text-xl font-sBold mb-2 text-zinc-800">
+            About netSpeed
+          </Text>
           <Text className="text-base font-sRegular text-zinc-700 text-center mb-5">
             This app measures your network speed, ping, and location. Tap "Speed
             Test" to refresh the results. Your IP and location are fetched from

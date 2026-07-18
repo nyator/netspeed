@@ -4,7 +4,7 @@
     "slug": "netspeed",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/netspeedLogo.png",
+    "icon": "./assets/netspeedLogo-square.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -24,7 +24,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/netspeedLogo.png",
+        "foregroundImage": "./assets/netspeedLogo-square.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

@@ -1,15 +1,15 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import { SplashScreen, Stack } from "expo-router";
+import { SplashScreen } from "expo-router";
 import { useFonts } from "expo-font";
 import { useEffect } from "react";
 
-import NetworkMonitor from './components/NetworkMonitor';
+import NetworkMonitor from "./components/NetworkMonitor";
 
-import './global.css';
+import "./global.css";
+
+// Must run before first render, not in an effect after it
+SplashScreen.preventAutoHideAsync();
 
 export default function App() {
-
   const [fontsLoaded, error] = useFonts({
     "Satoshi-Black": require("./assets/fonts/Satoshi-Black.otf"),
     "Satoshi-Bold": require("./assets/fonts/Satoshi-Bold.otf"),
@@ -19,28 +19,16 @@ export default function App() {
   });
 
   useEffect(() => {
-    SplashScreen.preventAutoHideAsync();
-  }, []);
-
-  useEffect(() => {
-    if (error) throw error;
-
-    if (fontsLoaded) {
+    // On font failure, log and continue with system fonts instead of crashing
+    if (error) console.error("Font loading error:", error);
+    if (fontsLoaded || error) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, error]);
+
   if (!fontsLoaded && !error) {
     return null;
   }
 
-
-  return (
-    // <View className='flex-1 max-w-3xl items-center justify-center'>
-    //   <View className="flex-1 items-center justify-center">
-    //     <Text className="text-3xl font-sBlack">Welcome to netspeed!</Text>
-    //   </View>
-    //   <StatusBar style="auto" />
-    // </View>
-    <NetworkMonitor />
-  );
+  return <NetworkMonitor />;
 }
